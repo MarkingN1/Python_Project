@@ -21,7 +21,7 @@ dis = pygame.display.set_mode((dis_width, dis_height))
 pygame.display.set_caption('Snake Game')
 
 # Load the background image
-background = pygame.image.load('hatter.png')
+background = pygame.image.load('INFO-Project-py/hatter.png')
 
 # Clock to control the speed of the snake
 clock = pygame.time.Clock()
@@ -90,11 +90,11 @@ def gameLoop():
                 elif event.key == pygame.K_RIGHT and direction!= 'LEFT':
                     x1_change = snake_block
                     y1_change = 0
-                    direction!= 'RIGHT'
+                    direction = 'RIGHT'
                 elif event.key == pygame.K_UP and direction!= 'DOWN':
                     y1_change = -snake_block
                     x1_change = 0
-                    direction!= 'UP'
+                    direction = 'UP'
                 elif event.key == pygame.K_DOWN and direction!= 'UP':
                     y1_change = snake_block
                     x1_change = 0
