@@ -30,20 +30,46 @@ clock = pygame.time.Clock()
 # Snake settings
 snake_block = 10
 
-speed_boost_duration = 30  # Duration in seconds for speed boost
+speed_boost_duration = 15  # Duration in seconds for speed boost
 
 font_style = pygame.font.SysFont("bahnschrift", 25)
+status_font = pygame.font.SysFont("bahnschrift", 20)
 
 # Function to display the score
 def Your_score(score):
     value = font_style.render("Your Score: " + str(score), True, white)
     dis.blit(value, [0, 0])
 
+# Function to display the status
+def display_status(effect, time_left):
+    status_text = f"Effect: {effect} | Time left: {int(time_left)}s"
+    status_value = status_font.render(status_text, True, green)
+    dis.blit(status_value, [dis_width / 2 - status_value.get_width() / 2, 0])
+
+                            
 # Function to draw the snake
 def our_snake(snake_block, snake_list):
     for x in snake_list:
-        pygame.draw.rect(dis, black, [x[0], x[1], snake_block, snake_block])
+        pygame.draw.rect(dis, purple, [x[0], x[1], snake_block, snake_block])
 
+# Function to generate food with specified probabilities
+def generate_food():
+    probability = random.random()
+    if probability < 0.5:  # 50% chance for red food
+        food_color = red
+        food_points = 1
+        type=1
+    elif probability < 0.8:  # 30% chance for purple food
+        food_color = purple
+        food_points = 2
+        type=2
+    else:  # 20% chance for blue food
+        food_color = blue
+        food_points = 1
+        type=3
+    foodx = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
+    foody = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
+    return foodx, foody, food_color, food_points, type
 # Main game loop
 def gameLoop():
     game_over = False
@@ -68,6 +94,7 @@ def gameLoop():
     foodx3 = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
     foody3 = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
     direction = '.'
+    foodx, foody, food_color, food_points , type = generate_food()
 
     while not game_over:
 
@@ -111,12 +138,15 @@ def gameLoop():
             game_close = True
         x1 += x1_change
         y1 += y1_change
-
+        
         dis.blit(background, (0, 0))  # Draw the background image
         #draw target
-        pygame.draw.rect(dis, red, [foodx, foody, snake_block, snake_block])
-        pygame.draw.rect(dis, purple, [foodx2, foody2, snake_block, snake_block])
-        pygame.draw.rect(dis, blue, [foodx3, foody3, snake_block, snake_block])
+        if(type==1):
+                    pygame.draw.rect(dis, red, [foodx, foody, snake_block, snake_block])
+        elif(type==2): 
+            pygame.draw.rect(dis, purple, [foodx2, foody2, snake_block, snake_block])
+        else:
+            pygame.draw.rect(dis, blue, [foodx3, foody3, snake_block, snake_block])
 
         snake_Head = []
         snake_Head.append(x1)
@@ -138,13 +168,16 @@ def gameLoop():
             foodx = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
             foody = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
             Length_of_snake += 1
+            foodx, foody, food_color, food_points ,type = generate_food()
         if x1 == foodx2 and y1 == foody2:
             foodx2 = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
             foody2 = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
+            foodx, foody, food_color, food_points ,type = generate_food()
             Length_of_snake += 2
         if x1 == foodx3 and y1 == foody3:
             foodx3 = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
             foody3 = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
+            foodx, foody, food_color, food_points ,type = generate_food()
             Length_of_snake += 1
             is_speed_boosted = True
             speed_boost_end_time = time.time() + speed_boost_duration
@@ -155,6 +188,11 @@ def gameLoop():
                 is_speed_boosted = False
                 snake_speed = 20
         clock.tick(snake_speed)
+        if is_speed_boosted:
+            display_status("Faster", speed_boost_end_time - time.time())
+        else:
+            display_status("None", 0)
+        
 
     pygame.quit()
     quit()
