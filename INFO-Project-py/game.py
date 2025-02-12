@@ -6,8 +6,6 @@ from subprocess import call
 # Initialize pygame
 pygame.init()
 
-def run_another_pygame():
- call(["python", "INFO-Project-py/menu.py"])
 
 # Colors
 white = (255, 255, 255)
@@ -76,6 +74,9 @@ def generate_food():
     foodx = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
     foody = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
     return foodx, foody, food_color, food_points, type
+
+#define image import
+image_sprite = [pygame.image.load(""), pygame.image.load("")]
 # Main game loop
 def gameLoop():
     game_over = False
@@ -202,8 +203,6 @@ def gameLoop():
             effect_status="None"
         clock.tick(snake_speed)
         
-    run_another_pygame()
     pygame.quit()
-    quit()
 
 gameLoop()
