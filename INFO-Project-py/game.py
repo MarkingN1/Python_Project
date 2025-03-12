@@ -31,7 +31,7 @@ screen_height = infoObject.current_h
 clock = pygame.time.Clock()
 
 # Snake settings
-snake_block = 20
+snake_block = 30
 speed_boost_duration = 10  # Duration in seconds for speed boost
 
 font_style = pygame.font.SysFont("bahnschrift", 25)
@@ -45,7 +45,7 @@ def Your_score(score):
 # Function to display the status
 def display_status(effect):
     status_text = "Effect: "
-    status_value = status_font.render(status_text + str(effect), True, green)
+    status_value = status_font.render(status_text + str(effect), True, red)
     screen.blit(status_value, [0, 25])
 
 # Function to draw the snake
@@ -74,8 +74,8 @@ def gameLoop():
     game_over = False
     game_close = False
 
-    x1 = screen_width // snake_block * snake_block // 2
-    y1 = screen_height // snake_block * snake_block // 2
+    x1 = 300
+    y1 = 300
 
     x1_change = 0
     y1_change = 0
@@ -84,9 +84,9 @@ def gameLoop():
     Length_of_snake = 1
     is_speed_boosted = False
     speed_boost_end_time = 0
-    snake_speed = 5
+    snake_speed = 10
     effect_status = "None"
-    direction = 'RIGHT'
+    direction = 'none'
     last_input_time = 0
 
     foodx, foody, food_color, type = generate_food()
@@ -97,7 +97,7 @@ def gameLoop():
 
         while game_close:
             screen.fill(black)
-            message = font_style.render("Game Over! Press ESCAPE-Quit or C-Play Again", True, red)
+            message = font_style.render("Game Over! Press Esc-Quit or C-Play Again", True, red)
             screen.blit(message, [screen_width // 5, screen_height // 3])
             Your_score(Length_of_snake - 1)
             pygame.display.update()
@@ -118,19 +118,19 @@ def gameLoop():
             if event.type == pygame.KEYDOWN and current_time - last_input_time >= 0.05:
                 last_input_time = current_time
                 if event.key == pygame.K_LEFT and direction != 'RIGHT':
-                    x1_change = -10
+                    x1_change = -snake_block
                     y1_change = 0
                     direction = 'LEFT'
                 elif event.key == pygame.K_RIGHT and direction != 'LEFT':
-                    x1_change = 10
+                    x1_change = snake_block
                     y1_change = 0
                     direction = 'RIGHT'
                 elif event.key == pygame.K_UP and direction != 'DOWN':
-                    y1_change = -10
+                    y1_change = -snake_block
                     x1_change = 0
                     direction = 'UP'
                 elif event.key == pygame.K_DOWN and direction != 'UP':
-                    y1_change = 10
+                    y1_change = snake_block
                     x1_change = 0
                     direction = 'DOWN'
                 elif event.key == pygame.K_ESCAPE:
