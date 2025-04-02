@@ -1,10 +1,22 @@
 import pygame
 import random
 import os
+import time
 
 # Initialize Pygame
 pygame.init()
+#music initialize
+pygame.mixer.init()
 
+music_files = [
+    'INFO-Project-py/atari_music/8bit.mp3',
+    'INFO-Project-py/atari_music/letsgo.mp3'
+]
+# Load the music file
+#random.shuffle(music_files)
+sound_files = [
+    'INFO-Project-py/sound/powerupsfx.wav'
+]
 # Screen dimensions
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -26,7 +38,7 @@ FPS = 60
 # Paddle
 PADDLE_WIDTH, PADDLE_HEIGHT = 100, 10
 paddle = pygame.Rect(WIDTH // 2 - PADDLE_WIDTH // 2, HEIGHT - 30, PADDLE_WIDTH, PADDLE_HEIGHT)
-paddle_speed = 7
+paddle_speed = 10
 
 # Ball
 BALL_RADIUS = 8
@@ -49,6 +61,7 @@ lives = 3
 level = 1
 game_over = False
 paddle_expanded = False
+paddle_shrink = False
 invincible_ball = False
 power_up_timer = 0
 fast_ball = False
@@ -56,7 +69,7 @@ ball_color = RED
 
 
 # Load Power-Up Icons from the "powerups" folder
-icon_folder = "powerups"
+icon_folder = "INFO-Project-py/powerups"
 icons = {
     "bigger_paddle": pygame.image.load(os.path.join(icon_folder, "expand.png")),
     "invincible_ball": pygame.image.load(os.path.join(icon_folder, "invincible.png")),
@@ -88,7 +101,7 @@ def spawn_power_up(x, y):
 
 # Activate Power-Up Effects
 def activate_power_up(type_):
-    global paddle_expanded, invincible_ball, power_up_timer, lives, fast_ball, ball_color
+    global paddle_expanded, invincible_ball, power_up_timer, lives, fast_ball, ball_color, paddle_shrink
     if type_ == "bigger_paddle" and not paddle_expanded:
         paddle.width += 50
         paddle_expanded = True
@@ -106,31 +119,36 @@ def activate_power_up(type_):
             ball_data["rect"].width = BALL_RADIUS * 4
             ball_data["rect"].height = BALL_RADIUS * 4
         ball_color = PINK
-    elif type_ == "eight_ball":
-        for _ in range(8):  # Spawn 8 additional balls
-            new_ball_speed = [random.choice([-4, 4]), random.choice([-4, 4])]
-            new_ball_rect = pygame.Rect(WIDTH // 2, HEIGHT // 2, BALL_RADIUS * 2, BALL_RADIUS * 2)
-            balls.append({"rect": new_ball_rect, "speed": new_ball_speed})
     elif type_ == "shrink_paddle":
         if paddle.width > 50:  # Minimum paddle width
             paddle.width -= 50
-    elif type_ == "slow_ball":
-        for ball_data in balls:
-            ball_data["speed"][0] /= 1.5
-            ball_data["speed"][1] /= 1.5
+            paddle_shrink = True
+    elif type_ == "eight_ball":
+        for _ in range(8):  # Spawn 8 additional balls
+        # Generate a random direction for each new ball
+            new_ball_speed = [random.choice([-4, 4]), random.choice([-4, -3, 3, 4])]
+            new_ball_rect = pygame.Rect(WIDTH // 2, HEIGHT // 2, BALL_RADIUS * 2, BALL_RADIUS * 2)
+            balls.append({"rect": new_ball_rect, "speed": new_ball_speed})
+
     elif type_ == "split_ball":
-        for ball_data in balls[:]:
-            new_ball_speed = [ball_data["speed"][0] * -1, ball_data["speed"][1]]
+        for ball_data in balls[:]:  # Iterate over the existing balls
+        # Create a slightly varied direction for the new ball
+            new_ball_speed = [-ball_data["speed"][0], ball_data["speed"][1] + random.choice([-2, 2])]
             new_ball_rect = ball_data["rect"].copy()
             balls.append({"rect": new_ball_rect, "speed": new_ball_speed})
+
+
     power_up_timer = pygame.time.get_ticks()
 
 # Deactivate Power-Ups
 def deactivate_power_ups():
-    global paddle_expanded, invincible_ball, fast_ball, ball_color
+    global paddle_expanded, invincible_ball, fast_ball, ball_color, paddle_shrink
     if paddle_expanded:
-        paddle.width -= 50
+        paddle.width = 100
         paddle_expanded = False
+    if paddle_shrink:
+        paddle.width = 100
+        paddle_shrink = False 
     if invincible_ball:
         invincible_ball = False
     if fast_ball:
@@ -143,6 +161,16 @@ def deactivate_power_ups():
         ball_data["rect"].height = BALL_RADIUS * 2
     ball_color = RED
 
+def play_music():
+    nmusic=random.randrange(0,3)
+    pygame.mixer.music.load(music_files[nmusic])  # Load the music file
+    pygame.mixer.music.play()  # Play the music
+
+
+def sound_effect(soundnum):
+    sound_effect_up = pygame.mixer.Sound(sound_files[soundnum])
+    sound_effect_up.play()  # Play the sound effect
+    
 # Draw Power-Ups
 def draw_power_ups():
     for power_up in power_ups:
@@ -172,13 +200,16 @@ def restart_game():
     game_over = False
     deactivate_power_ups()
     create_bricks()
+    play_music()
 
 # Main Game Loop
 def main():
     global score, lives, level, game_over, power_up_timer
 
     create_bricks()
+    play_music()
 
+    
     running = True
     while running:
         screen.fill(BLACK)
@@ -210,8 +241,14 @@ def main():
                 ball_speed[1] = -ball_speed[1]
 
             # Ball Collision with Paddle
+            # Ball Collision with Paddle
             if ball_rect.colliderect(paddle):
-                ball_speed[1] = -ball_speed[1]
+            # Calculate hit position relative to the paddle
+             hit_position = (ball_rect.centerx - paddle.left) / paddle.width
+            # Adjust ball's horizontal speed based on hit position
+             ball_speed[0] = (hit_position - 0.5) * 8  # Scale to control speed range
+             ball_speed[1] = -abs(ball_speed[1])  # Ensure the ball bounces upwards
+
 
             # Ball Collision with Bricks
             for brick in bricks[:]:
@@ -244,6 +281,7 @@ def main():
             if paddle.colliderect(power_up["rect"]):
                 activate_power_up(power_up["type"])
                 power_ups.remove(power_up)
+                sound_effect(0)
             elif power_up["rect"].top > HEIGHT:
                 power_ups.remove(power_up)
 
@@ -283,13 +321,15 @@ def main():
             game_over_text = font.render("Game Over! Press R to Restart", True, YELLOW)
             screen.blit(game_over_text, (WIDTH // 2 - 150, HEIGHT // 2))
             pygame.display.flip()
+            pygame.mixer.music.stop()
             keys = pygame.key.get_pressed()
             if keys[pygame.K_r]:
                 restart_game()
 
         pygame.display.flip()
         clock.tick(FPS)
-
+        
+    
     pygame.quit()
 
 # Run the Game
