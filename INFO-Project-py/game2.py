@@ -1,9 +1,9 @@
 import pygame
 import random
 import os
-import time
-
+import json
 # Initialize Pygame
+
 pygame.init()
 #music initialize
 pygame.mixer.init()
@@ -15,8 +15,10 @@ music_files = [
 # Load the music file
 #random.shuffle(music_files)
 sound_files = [
-    'INFO-Project-py/sound/powerupsfx.wav'
+    'INFO-Project-py/sound/powerupsfx.mp3'
 ]
+
+
 # Screen dimensions
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -66,6 +68,8 @@ invincible_ball = False
 power_up_timer = 0
 fast_ball = False
 ball_color = RED
+current_map_index = 0
+maps = ["INFO-Project-py/map1.json"]  # List of custom maps
 
 
 # Load Power-Up Icons from the "powerups" folder
@@ -82,6 +86,11 @@ icons = {
     "split_ball": pygame.image.load(os.path.join(icon_folder, "split_ball.png")),
 }
 
+# Load a map from a file
+def load_custom_map(file_path):
+    with open(file_path, "r") as file:
+        return [{"rect": pygame.Rect(brick["x"], brick["y"], brick["width"], brick["height"]), 
+                 "color": tuple(brick["color"])} for brick in json.load(file)]
 # Fonts
 font = pygame.font.SysFont(None, 36)
 
@@ -102,9 +111,10 @@ def spawn_power_up(x, y):
 # Activate Power-Up Effects
 def activate_power_up(type_):
     global paddle_expanded, invincible_ball, power_up_timer, lives, fast_ball, ball_color, paddle_shrink
-    if type_ == "bigger_paddle" and not paddle_expanded:
-        paddle.width += 50
-        paddle_expanded = True
+    if type_ == "bigger_paddle" :
+        if paddle.width < 300: 
+            paddle.width += 50
+            paddle_expanded = True
     elif type_ == "invincible_ball" and not invincible_ball:
         invincible_ball = True
     elif type_ == "extra_life":
@@ -160,9 +170,8 @@ def deactivate_power_ups():
         ball_data["rect"].width = BALL_RADIUS * 2
         ball_data["rect"].height = BALL_RADIUS * 2
     ball_color = RED
-
 def play_music():
-    nmusic=random.randrange(0,3)
+    nmusic=random.randrange(0,2)
     pygame.mixer.music.load(music_files[nmusic])  # Load the music file
     pygame.mixer.music.play()  # Play the music
 
@@ -177,15 +186,15 @@ def draw_power_ups():
         scaled_icon = pygame.transform.scale(power_up["icon"], (POWER_UP_WIDTH, POWER_UP_HEIGHT))
         screen.blit(scaled_icon, (power_up["rect"].x, power_up["rect"].y))
 
-# Create Bricks for Current Level
+# Create Bricks for Current Map
 def create_bricks():
-    global bricks, level
-    bricks.clear()
-    for row in range(ROWS + level - 1):  # Increase rows as level increases
-        for col in range(BRICKS_PER_ROW):
-            brick_x = col * (BRICK_WIDTH + 5) + 35
-            brick_y = row * (BRICK_HEIGHT + 5) + 50
-            bricks.append(pygame.Rect(brick_x, brick_y, BRICK_WIDTH, BRICK_HEIGHT))
+    global bricks, current_map_index
+    if current_map_index < len(maps):
+        bricks = load_custom_map(maps[current_map_index])
+    else:
+        # Victory condition when all maps are cleared
+        global game_over
+        game_over = True
 
 # Restart Game
 def restart_game():
@@ -200,7 +209,6 @@ def restart_game():
     game_over = False
     deactivate_power_ups()
     create_bricks()
-    play_music()
 
 # Main Game Loop
 def main():
@@ -209,7 +217,6 @@ def main():
     create_bricks()
     play_music()
 
-    
     running = True
     while running:
         screen.fill(BLACK)
@@ -250,15 +257,16 @@ def main():
              ball_speed[1] = -abs(ball_speed[1])  # Ensure the ball bounces upwards
 
 
-            # Ball Collision with Bricks
+           # Ball Collision with Bricks
             for brick in bricks[:]:
-                if ball_rect.colliderect(brick):
-                    if not invincible_ball:
+                if ball_rect.colliderect(brick["rect"]):
+                    if invincible_ball == 0: 
                         ball_speed[1] = -ball_speed[1]
                     bricks.remove(brick)
                     score += 10
-                    spawn_power_up(brick.x + BRICK_WIDTH // 2, brick.y + BRICK_HEIGHT // 2)
+                    spawn_power_up(brick["rect"].x + brick["rect"].width // 2, brick["rect"].y + brick["rect"].height // 2)
                     break
+
 
             # Remove Ball if Out of Bounds
             if ball_rect.bottom >= HEIGHT:
@@ -280,8 +288,8 @@ def main():
             power_up["rect"].y += 3  # Falling speed of power-ups
             if paddle.colliderect(power_up["rect"]):
                 activate_power_up(power_up["type"])
-                power_ups.remove(power_up)
                 sound_effect(0)
+                power_ups.remove(power_up)
             elif power_up["rect"].top > HEIGHT:
                 power_ups.remove(power_up)
 
@@ -305,7 +313,8 @@ def main():
         for ball_data in balls:
             pygame.draw.ellipse(screen, ball_color, ball_data["rect"])
         for brick in bricks:
-            pygame.draw.rect(screen, BLUE, brick)
+            pygame.draw.rect(screen, brick["color"], brick["rect"])
+
         draw_power_ups()
 
         # Display Score, Lives, and Level
@@ -321,15 +330,13 @@ def main():
             game_over_text = font.render("Game Over! Press R to Restart", True, YELLOW)
             screen.blit(game_over_text, (WIDTH // 2 - 150, HEIGHT // 2))
             pygame.display.flip()
-            pygame.mixer.music.stop()
             keys = pygame.key.get_pressed()
             if keys[pygame.K_r]:
                 restart_game()
 
         pygame.display.flip()
         clock.tick(FPS)
-        
-    
+
     pygame.quit()
 
 # Run the Game
