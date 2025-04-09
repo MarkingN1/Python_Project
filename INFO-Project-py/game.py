@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 from subprocess import call
+import os
 
 # Initialize pygame
 pygame.init()
@@ -16,7 +17,7 @@ purple = (128, 0, 128)
 pink = (255, 111, 246)
 
 # Create the game window
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Snake Game')
 
 # Load the background image
@@ -31,8 +32,8 @@ screen_height = infoObject.current_h
 clock = pygame.time.Clock()
 
 # Snake settings
-snake_block = 30
-speed_boost_duration = 10  # Duration in seconds for speed boost
+snake_block = 20
+speed_boost_duration = 3  # Duration in seconds for speed boost
 
 font_style = pygame.font.SysFont("bahnschrift", 25)
 status_font = pygame.font.SysFont("bahnschrift", 25)
@@ -52,22 +53,28 @@ def display_status(effect):
 def our_snake(snake_block, snake_list):
     for x in snake_list:
         pygame.draw.rect(screen, black, [x[0], x[1], snake_block, snake_block])
+        
+icon_folder = "INFO-Project-py/snake"
+icons = {
+    "apple": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "alma.png")), (snake_block, snake_block)),
+    "plum": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "plum.png")), (snake_block, snake_block)),
+    "bean": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "bean.png")), (snake_block, snake_block)),
+    "pear": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "korte.png")), (snake_block, snake_block)),
+}        
 
 # Function to generate food with specified probabilities
 def generate_food():
     probability = random.random()
     if probability < 0.5:  # 50% chance for red food
-        food_color = red
-        type = 1
+        type = "apple"
     elif probability < 0.8:  # 30% chance for purple food
-        food_color = purple
-        type = 2
+        type = "plum"
     else:  # 20% chance for pink food
-        food_color = pink
-        type = 3
+        type = "bean"
     foodx = round(random.randrange(0, screen_width - snake_block) / snake_block) * snake_block
     foody = round(random.randrange(0, screen_height - snake_block) / snake_block) * snake_block
-    return foodx, foody, food_color, type
+    return foodx, foody, type
+
 
 # Main game loop
 def gameLoop():
@@ -89,9 +96,7 @@ def gameLoop():
     direction = 'none'
     last_input_time = 0
 
-    foodx, foody, food_color, type = generate_food()
-    foodx2, foody2 = generate_food()[:2]  # Only take the coordinates
-    foodx3, foody3 = generate_food()[:2]  # Only take the coordinates
+    foodx, foody, type = generate_food()
 
     while not game_over:
 
@@ -99,7 +104,7 @@ def gameLoop():
             screen.fill(black)
             message = font_style.render("Game Over! Press Esc-Quit or C-Play Again", True, red)
             screen.blit(message, [screen_width // 5, screen_height // 3])
-            Your_score(Length_of_snake - 1)
+            Your_score(Length_of_snake)
             pygame.display.update()
 
             for event in pygame.event.get():
@@ -148,12 +153,10 @@ def gameLoop():
                 screen.blit(background, (x, y))
 
         # Draw target
-        if type == 1:
-            pygame.draw.rect(screen, food_color, [foodx, foody, snake_block, snake_block])
-        elif type == 2:
-            pygame.draw.rect(screen, food_color, [foodx2, foody2, snake_block, snake_block])
-        else:
-            pygame.draw.rect(screen, food_color, [foodx3, foody3, snake_block, snake_block])
+                  # Draw food icon
+        if type in icons:
+            screen.blit(icons[type], (foodx, foody))  # Use the corresponding icon image
+            
 
         snake_Head = [x1, y1]
         snake_List.append(snake_Head)
@@ -168,25 +171,24 @@ def gameLoop():
         Your_score(Length_of_snake - 1)
         display_status(effect_status)
         pygame.display.update()
-
-        if x1 == foodx and y1 == foody:
-            foodx, foody, food_color, type = generate_food()
-            Length_of_snake += 1
-        if x1 == foodx2 and y1 == foody2:
-            foodx2, foody2 = generate_food()[:2]  # Only take the coordinates
-            Length_of_snake += 2
-        if x1 == foodx3 and y1 == foody3:
-            foodx3, foody3 = generate_food()[:2]  # Only take the coordinates
-            Length_of_snake += 1
-            is_speed_boosted = True
-            speed_boost_end_time = time.time() + speed_boost_duration
+        
+        if x1==foodx and y1==foody:
+             if type == "apple":
+                Length_of_snake += 1
+             elif type == "plum":
+                Length_of_snake += 2
+             elif type == "bean":
+                Length_of_snake += 5
+                is_speed_boosted = True
+                speed_boost_end_time = time.time() + speed_boost_duration
+                foodx, foody, type = generate_food()
 
         if is_speed_boosted:
             effect_status = "Faster"
             snake_speed = 20
             if time.time() >= speed_boost_end_time:
                 is_speed_boosted = False
-                snake_speed = 5
+                snake_speed = 20
         else:
             effect_status = "None"
 
