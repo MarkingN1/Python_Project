@@ -17,7 +17,7 @@ purple = (128, 0, 128)
 pink = (255, 111, 246)
 
 # Create the game window
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode((900, 700))
 pygame.display.set_caption('Snake Game')
 
 # Load the background image
@@ -32,11 +32,40 @@ screen_height = infoObject.current_h
 clock = pygame.time.Clock()
 
 # Snake settings
-snake_block = 20
+snake_block = 25
 speed_boost_duration = 3  # Duration in seconds for speed boost
 
 font_style = pygame.font.SysFont("bahnschrift", 25)
 status_font = pygame.font.SysFont("bahnschrift", 25)
+
+
+icon_folder = "INFO-Project-py/snake"
+icons = {
+    "apple": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "alma.png")), (snake_block, snake_block)),
+    "plum": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "plum.png")), (snake_block, snake_block)),
+    "pepper": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "pepper.png")), (snake_block, snake_block)),
+    "pear": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "korte.png")), (snake_block, snake_block)),
+}        
+
+snake_graphics = "INFO-Project-py/Graphics"
+direction_icons = {
+        "head_up": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "head_up.png")), (snake_block, snake_block)),
+        "head_down": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "head_down.png")), (snake_block, snake_block)),
+        "head_right": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "head_right.png")), (snake_block, snake_block)),
+        "head_left": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "head_left.png")), (snake_block, snake_block)),
+        "body_vertical": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "body_vertical.png")), (snake_block, snake_block)),
+        "body_horizontal": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "body_horizontal.png")), (snake_block, snake_block)),
+        "body_topright": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "body_topright.png")), (snake_block, snake_block)),
+        "body_topleft": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "body_topleft.png")), (snake_block, snake_block)),
+        "body_bottomleft": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "body_bottomleft.png")), (snake_block, snake_block)),
+        "body_bottomright": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "body_bottomright.png")), (snake_block, snake_block)),
+        "tail_up": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "tail_up.png")), (snake_block, snake_block)),
+        "tail_down": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "tail_down.png")), (snake_block, snake_block)),
+        "tail_right": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "tail_right.png")), (snake_block, snake_block)),
+        "tail_left": pygame.transform.scale(pygame.image.load(os.path.join(snake_graphics, "tail_left.png")), (snake_block, snake_block)),
+}
+
+
 
 # Function to display the score
 def Your_score(score):
@@ -50,30 +79,65 @@ def display_status(effect):
     screen.blit(status_value, [0, 25])
 
 # Function to draw the snake
-def our_snake(snake_block, snake_list):
-    for x in snake_list:
-        pygame.draw.rect(screen, black, [x[0], x[1], snake_block, snake_block])
-        
-icon_folder = "INFO-Project-py/snake"
-icons = {
-    "apple": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "alma.png")), (snake_block, snake_block)),
-    "plum": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "plum.png")), (snake_block, snake_block)),
-    "bean": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "bean.png")), (snake_block, snake_block)),
-    "pear": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "korte.png")), (snake_block, snake_block)),
-}        
+def our_snake(snake_list, direction):
+    for i, x in enumerate(snake_list):
+        if i == len(snake_list) - 1:
+            # Draw the head
+            if direction == "UP":
+                screen.blit(direction_icons["head_up"], (x[0], x[1]))
+            elif direction == "DOWN":
+                screen.blit(direction_icons["head_down"], (x[0], x[1]))
+            elif direction == "RIGHT":
+                screen.blit(direction_icons["head_right"], (x[0], x[1]))
+            elif direction == "LEFT":
+                screen.blit(direction_icons["head_left"], (x[0], x[1]))
+        elif i == 0:
+            # Draw the tail
+            if direction == "UP":
+                screen.blit(direction_icons["tail_down"], (x[0], x[1]))
+            elif direction == "DOWN":
+                screen.blit(direction_icons["tail_up"], (x[0], x[1]))
+            elif direction == "RIGHT":
+                screen.blit(direction_icons["tail_left"], (x[0], x[1]))
+            elif direction == "LEFT":
+                screen.blit(direction_icons["tail_right"], (x[0], x[1]))
+        else:
+            # Draw the body
+            if snake_list[i-1][0] == x[0] and snake_list[i+1][0] == x[0]:
+                # Vertical body
+                screen.blit(direction_icons["body_vertical"], (x[0], x[1]))
+            elif snake_list[i-1][1] == x[1] and snake_list[i+1][1] == x[1]:
+                # Horizontal body
+                screen.blit(direction_icons["body_horizontal"], (x[0], x[1]))
+            elif snake_list[i-1][0] < x[0] and snake_list[i+1][1] < x[1]:
+                # Top-right body
+                screen.blit(direction_icons["body_topright"], (x[0], x[1]))
+            elif snake_list[i-1][0] > x[0] and snake_list[i+1][1] < x[1]:
+                # Top-left body
+                screen.blit(direction_icons["body_topleft"], (x[0], x[1]))
+            elif snake_list[i-1][0] < x[0] and snake_list[i+1][1] > x[1]:
+                # Bottom-right body
+                screen.blit(direction_icons["body_bottomright"], (x[0], x[1]))
+            elif snake_list[i-1][0] > x[0] and snake_list[i+1][1] > x[1]:
+                # Bottom-left body
+                screen.blit(direction_icons["body_bottomleft"], (x[0], x[1]))
+
 
 # Function to generate food with specified probabilities
 def generate_food():
     probability = random.random()
     if probability < 0.5:  # 50% chance for red food
         type = "apple"
+        score = 1
     elif probability < 0.8:  # 30% chance for purple food
         type = "plum"
+        score = 2
     else:  # 20% chance for pink food
-        type = "bean"
+        type = "pepper"
+        score = 3
     foodx = round(random.randrange(0, screen_width - snake_block) / snake_block) * snake_block
     foody = round(random.randrange(0, screen_height - snake_block) / snake_block) * snake_block
-    return foodx, foody, type
+    return foodx, foody, type, score
 
 
 # Main game loop
@@ -93,10 +157,10 @@ def gameLoop():
     speed_boost_end_time = 0
     snake_speed = 10
     effect_status = "None"
-    direction = 'none'
+    direction = 'RIGHT'
     last_input_time = 0
 
-    foodx, foody, type = generate_food()
+    foodx, foody, type, score = generate_food()
 
     while not game_over:
 
@@ -162,33 +226,35 @@ def gameLoop():
         snake_List.append(snake_Head)
         if len(snake_List) > Length_of_snake:
             del snake_List[0]
-
+            
+            
+    #Self Collision mechanism
         for x in snake_List[:-1]:
             if x == snake_Head:
                 game_close = True
 
-        our_snake(snake_block, snake_List)
+        our_snake(snake_List,direction)
         Your_score(Length_of_snake - 1)
         display_status(effect_status)
         pygame.display.update()
         
         if x1==foodx and y1==foody:
              if type == "apple":
-                Length_of_snake += 1
+                Length_of_snake += score
              elif type == "plum":
-                Length_of_snake += 2
-             elif type == "bean":
-                Length_of_snake += 5
+                Length_of_snake += score
+             elif type == "pepper":
+                Length_of_snake += score
                 is_speed_boosted = True
                 speed_boost_end_time = time.time() + speed_boost_duration
-                foodx, foody, type = generate_food()
+             foodx, foody, type, score = generate_food()
 
         if is_speed_boosted:
             effect_status = "Faster"
             snake_speed = 20
             if time.time() >= speed_boost_end_time:
                 is_speed_boosted = False
-                snake_speed = 20
+                snake_speed = 10
         else:
             effect_status = "None"
 
