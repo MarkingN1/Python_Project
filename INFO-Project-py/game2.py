@@ -2,7 +2,12 @@ import pygame
 import random
 import os
 import json
-# Initialize Pygame
+import config
+import sys
+
+music_on = sys.argv[1]
+volume = float(sys.argv[2])
+
 
 pygame.init()
 #music initialize
@@ -69,7 +74,7 @@ power_up_timer = 0
 fast_ball = False
 ball_color = RED
 current_map_index = 0
-maps = ["INFO-Project-py/map1.json"]  # List of custom maps
+maps = ["INFO-Project-py/map1.json","INFO-Project-py/map2.json"]  # List of custom maps
 
 
 # Load Power-Up Icons from the "powerups" folder
@@ -100,7 +105,7 @@ balls = [{"rect": pygame.Rect(WIDTH // 2, HEIGHT // 2, BALL_RADIUS * 2, BALL_RAD
 # Spawn Power-Up with Icon
 def spawn_power_up(x, y):
     chance = random.random()
-    if chance < 0.3:  # 30% chance to drop a power-up
+    if chance < 0.2:  # 10% chance to drop a power-up
         type_ = random.choice(list(icons.keys()))
         power_ups.append({
             "rect": pygame.Rect(x, y, POWER_UP_WIDTH, POWER_UP_HEIGHT),
@@ -171,9 +176,17 @@ def deactivate_power_ups():
         ball_data["rect"].height = BALL_RADIUS * 2
     ball_color = RED
 def play_music():
-    nmusic=random.randrange(0,2)
-    pygame.mixer.music.load(music_files[nmusic])  # Load the music file
-    pygame.mixer.music.play()  # Play the music
+    global music_on
+    global volume
+    nmusic = random.randrange(0, len(music_files))
+    pygame.mixer.music.load(music_files[nmusic])
+    pygame.mixer.music.set_volume(volume)  # Use the updated volume
+    if music_on:
+        pygame.mixer.music.set_volume(volume)
+        pygame.mixer.music.play()
+    else:
+        pygame.mixer.music.stop()
+
 
 
 def sound_effect(soundnum):
@@ -327,12 +340,15 @@ def main():
 
         # Display Game Over
         if game_over:
-            game_over_text = font.render("Game Over! Press R to Restart", True, YELLOW)
-            screen.blit(game_over_text, (WIDTH // 2 - 150, HEIGHT // 2))
+            game_over_text = font.render("Game Over! Press Esc-Quit or C-Play Again", True, YELLOW)
+            screen.blit(game_over_text, (WIDTH // 5 , HEIGHT // 2))
             pygame.display.flip()
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_r]:
+            if keys[pygame.K_c]:
                 restart_game()
+            if keys[pygame.K_ESCAPE]:
+                pygame.quit()
+                      
 
         pygame.display.flip()
         clock.tick(FPS)
