@@ -1,6 +1,6 @@
 import pygame
-import config
 from subprocess import call
+import json
 
 # Initialize Pygame
 pygame.init()
@@ -15,6 +15,14 @@ SLIDER_BG_COLOR = (50, 50, 100)
 # Define the screen dimensions
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
+
+def load_config():
+    with open("Z:\szoverfimark\Python_Project-main\INFO-Project-py\config.json", 'r') as f:
+        return json.load(f)
+
+def save_config(config):
+    with open("Z:\szoverfimark\Python_Project-main\INFO-Project-py\config.json", 'w') as f:
+        json.dump(config, f)
 
 running = True
 
@@ -101,40 +109,42 @@ class ToggleSwitch:
             self.state = not self.state
             self.callback(self.state)
 
-def run_snake():
-    call(["python", "INFO-Project-py\game.py"])
+def run_another_pygame():
+    call(["python", "INFO-Project-py/game.py"])
 
-def run_brick():
-    call(["python", "INFO-Project-py/game2.py", str(config.music_on), str(config.volume)])
-
-    
 def exit():
     global running
     running = False
 
 # Variables for music settings
 music_on = True
-volume = 0.5
+volume = 1
+cfg = load_config()
+cfg['music_on'] = True
+cfg['volume'] = 0.8
+save_config(cfg)
 
 def toggle_music(state):
-    config.music_on = state
-    if config.music_on:
-        pygame.mixer.music.unpause()
-    else:
-        pygame.mixer.music.pause()
+    global music_on
+    music_on = state
+    cfg = load_config()
+    cfg['music_on'] = music_on
+    save_config(cfg)
 
 def set_volume(val):
-    config.volume = val
-    pygame.mixer.music.set_volume(config.volume)
-
+    global volume
+    volume = val
+    cfg = load_config()
+    cfg['volume'] = volume
+    save_config(cfg)
 
 def options():
     global running
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('Settings')
 
-    music_toggle = ToggleSwitch(300, 250, 200, 60, config.music_on, toggle_music)
-    volume_slider = Slider(300, 350, 200, 20, 0.0, 1.0, config.volume, set_volume)
+    music_toggle = ToggleSwitch(300, 250, 200, 60, music_on, toggle_music)
+    volume_slider = Slider(300, 350, 200, 20, 0.0, 1.0, volume, set_volume)
     back_button = Button(300, 390, 200, 60, 'Back', main)
 
     options_running = True
@@ -158,39 +168,15 @@ def options():
 
     if running:
         main()
-        
-def gamemodes():
-    global running
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption('Select Gamemode')
 
-    snake = Button(300, 250, 200, 60,'Snoke', run_snake )
-    brick = Button(300, 320, 200, 60, 'Brick breaker',  run_brick )
-    back_button2 = Button(300, 390, 200, 60, 'Back', main)
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                snake.click()
-                brick.click()
-                back_button2.click()
-
-        screen.fill((30, 30, 30))
-        snake.draw(screen)
-        brick.draw(screen)
-        back_button2.draw(screen)
-        pygame.display.flip()
-
-    pygame.quit()
 def main():
     global running
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('Main Window')
 
-    button = Button(300, 250, 200, 60, 'Select gamemode', gamemodes )
-    button2 = Button(300, 390, 200, 60, 'Exit', exit )
-    button3 = Button(300, 320, 200, 60, 'Options', options )
+    button = Button(300, 250, 200, 60, 'Select gamemode', run_another_pygame)
+    button2 = Button(300, 390, 200, 60, 'Exit', exit)
+    button3 = Button(300, 320, 200, 60, 'Options', options)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
