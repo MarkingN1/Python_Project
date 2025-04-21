@@ -17,7 +17,7 @@ purple = (128, 0, 128)
 pink = (255, 111, 246)
 
 # Create the game window
-screen = pygame.display.set_mode((900, 700))
+screen = pygame.display.set_mode((800, 700))
 pygame.display.set_caption('Snake Game')
 
 # Load the background image
@@ -28,11 +28,13 @@ infoObject = pygame.display.Info()
 screen_width = infoObject.current_w
 screen_height = infoObject.current_h
 
+okblock = screen_height
 # Clock to control the speed of the snake
 clock = pygame.time.Clock()
 
 # Snake settings
-snake_block = 25
+snake_speed = 8
+snake_block = 20
 speed_boost_duration = 3  # Duration in seconds for speed boost
 
 font_style = pygame.font.SysFont("bahnschrift", 25)
@@ -93,34 +95,51 @@ def our_snake(snake_list, direction):
                 screen.blit(direction_icons["head_left"], (x[0], x[1]))
         elif i == 0:
             # Draw the tail
-            if direction == "UP":
-                screen.blit(direction_icons["tail_down"], (x[0], x[1]))
-            elif direction == "DOWN":
-                screen.blit(direction_icons["tail_up"], (x[0], x[1]))
-            elif direction == "RIGHT":
-                screen.blit(direction_icons["tail_left"], (x[0], x[1]))
-            elif direction == "LEFT":
-                screen.blit(direction_icons["tail_right"], (x[0], x[1]))
+            if len(snake_list) > 1: 
+                next_segment = snake_list[i + 1] 
+                if next_segment[0] == x[0]: 
+                    if next_segment[1] > x[1]:  
+                        screen.blit(direction_icons["tail_up"], (x[0], x[1]))
+                    else:
+                        screen.blit(direction_icons["tail_down"], (x[0], x[1]))
+                elif next_segment[1] == x[1]:  
+                    if next_segment[0] > x[0]: 
+                        screen.blit(direction_icons["tail_left"], (x[0], x[1]))
+                    else: 
+                        screen.blit(direction_icons["tail_right"], (x[0], x[1]))
         else:
             # Draw the body
-            if snake_list[i-1][0] == x[0] and snake_list[i+1][0] == x[0]:
+            prev_segment = snake_list[i - 1]
+            next_segment = snake_list[i + 1]
+
+            if prev_segment[0] == x[0] and next_segment[0] == x[0]:
                 # Vertical body
                 screen.blit(direction_icons["body_vertical"], (x[0], x[1]))
-            elif snake_list[i-1][1] == x[1] and snake_list[i+1][1] == x[1]:
+            elif prev_segment[1] == x[1] and next_segment[1] == x[1]:
                 # Horizontal body
                 screen.blit(direction_icons["body_horizontal"], (x[0], x[1]))
-            elif snake_list[i-1][0] < x[0] and snake_list[i+1][1] < x[1]:
-                # Top-right body
-                screen.blit(direction_icons["body_topright"], (x[0], x[1]))
-            elif snake_list[i-1][0] > x[0] and snake_list[i+1][1] < x[1]:
-                # Top-left body
-                screen.blit(direction_icons["body_topleft"], (x[0], x[1]))
-            elif snake_list[i-1][0] < x[0] and snake_list[i+1][1] > x[1]:
-                # Bottom-right body
-                screen.blit(direction_icons["body_bottomright"], (x[0], x[1]))
-            elif snake_list[i-1][0] > x[0] and snake_list[i+1][1] > x[1]:
-                # Bottom-left body
-                screen.blit(direction_icons["body_bottomleft"], (x[0], x[1]))
+            else:
+                # Determine corners
+                if prev_segment[0] < x[0] and next_segment[1] < x[1]:
+                    screen.blit(direction_icons["body_topleft"], (x[0], x[1]))
+                elif prev_segment[1] < x[1] and next_segment[0] < x[0]:
+                    screen.blit(direction_icons["body_topleft"], (x[0], x[1]))
+                    
+                elif prev_segment[0] > x[0] and next_segment[1] < x[1]:
+                    screen.blit(direction_icons["body_topright"], (x[0], x[1]))
+                elif prev_segment[1] < x[1] and next_segment[0] > x[0]:
+                    screen.blit(direction_icons["body_topright"], (x[0], x[1]))
+                    
+                elif prev_segment[0] < x[0] and next_segment[1] > x[1]:
+                    screen.blit(direction_icons["body_bottomleft"], (x[0], x[1]))
+                elif prev_segment[1] > x[1] and next_segment[0] < x[0]:
+                    screen.blit(direction_icons["body_bottomleft"], (x[0], x[1]))
+                    
+                elif prev_segment[0] > x[0] and next_segment[1] > x[1]:
+                    screen.blit(direction_icons["body_bottomright"], (x[0], x[1]))
+                elif prev_segment[1] > x[1] and next_segment[0] > x[0]:
+                    screen.blit(direction_icons["body_bottomright"], (x[0], x[1]))
+                
 
 
 # Function to generate food with specified probabilities
@@ -142,6 +161,7 @@ def generate_food():
 
 # Main game loop
 def gameLoop():
+    global snake_speed
     game_over = False
     game_close = False
 
@@ -155,8 +175,7 @@ def gameLoop():
     Length_of_snake = 1
     is_speed_boosted = False
     speed_boost_end_time = 0
-    snake_speed = 10
-    effect_status = "None"
+    effect_status = "NONE"
     direction = 'RIGHT'
     last_input_time = 0
 
@@ -166,7 +185,7 @@ def gameLoop():
 
         while game_close:
             screen.fill(black)
-            message = font_style.render("Game Over! Press Esc-Quit or C-Play Again", True, red)
+            message = font_style.render("Game Over! Press Esc-Quit or SPACE-Play Again", True, red)
             screen.blit(message, [screen_width // 5, screen_height // 3])
             Your_score(Length_of_snake)
             pygame.display.update()
@@ -176,7 +195,7 @@ def gameLoop():
                     if event.key == pygame.K_ESCAPE:
                         game_over = True
                         game_close = False
-                    if event.key == pygame.K_c:
+                    if event.key == pygame.K_SPACE:
                         gameLoop()
 
         current_time = time.time()
@@ -184,7 +203,7 @@ def gameLoop():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_over = True
-            if event.type == pygame.KEYDOWN and current_time - last_input_time >= 0.05:
+            if event.type == pygame.KEYDOWN and current_time - last_input_time >= 0.02:
                 last_input_time = current_time
                 if event.key == pygame.K_LEFT and direction != 'RIGHT':
                     x1_change = -snake_block
@@ -251,10 +270,10 @@ def gameLoop():
 
         if is_speed_boosted:
             effect_status = "Faster"
-            snake_speed = 20
+            snake_speed = 12
             if time.time() >= speed_boost_end_time:
                 is_speed_boosted = False
-                snake_speed = 10
+                snake_speed = 8
         else:
             effect_status = "None"
 
