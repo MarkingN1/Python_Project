@@ -2,26 +2,38 @@ import pygame
 import random
 import os
 import json
-import config
-import sys
-
-music_on = sys.argv[1]
-volume = float(sys.argv[2])
-
 
 pygame.init()
 #music initialize
 pygame.mixer.init()
 
+music_path = "INFO-Project-py/atari_music"
+
 music_files = [
-    'INFO-Project-py/atari_music/8bit.mp3',
-    'INFO-Project-py/atari_music/letsgo.mp3'
+    '1.mp3',
+    '2.mp3',
+    '3.mp3',
+    '4.mp3',
+    '5.mp3',
+    '6.mp3',
+    '7.mp3',
+    '8.mp3'
+    
 ]
 # Load the music file
 #random.shuffle(music_files)
 sound_files = [
     'INFO-Project-py/sound/powerupsfx.mp3'
 ]
+
+def load_config():
+    with open("INFO-Project-py\config.json", 'r') as f:
+        return json.load(f)
+
+def save_config(config):
+    with open("INFO-Project-py\config.json", 'w') as f:
+        json.dump(config, f)
+
 
 
 # Screen dimensions
@@ -175,17 +187,22 @@ def deactivate_power_ups():
         ball_data["rect"].width = BALL_RADIUS * 2
         ball_data["rect"].height = BALL_RADIUS * 2
     ball_color = RED
+    
+
+
+
 def play_music():
-    global music_on
-    global volume
-    nmusic = random.randrange(0, len(music_files))
-    pygame.mixer.music.load(music_files[nmusic])
-    pygame.mixer.music.set_volume(volume)  # Use the updated volume
-    if music_on:
-        pygame.mixer.music.set_volume(volume)
-        pygame.mixer.music.play()
-    else:
-        pygame.mixer.music.stop()
+    cfg = load_config()
+    music_on = cfg['music_on']
+    volume = cfg['volume']
+    # Shuffle the music files to play them randomly
+    random.shuffle(music_files)
+    for music_file in music_files:
+        music_file_path = os.path.join(music_path, music_file)
+        pygame.mixer.music.load(music_file_path)  # Load the music file
+        pygame.mixer.music.set_volume(volume)  # Set the volume (0.0 to 1.0)
+        if music_on:
+            pygame.mixer.music.play()  # Play the music in a loop (-1 for infinite loop)
 
 
 
@@ -233,6 +250,8 @@ def main():
     running = True
     while running:
         screen.fill(BLACK)
+        if (pygame.mixer_music.get_busy() == False):
+            play_music()
 
         # Event Handling
         for event in pygame.event.get():
