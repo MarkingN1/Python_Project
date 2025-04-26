@@ -3,49 +3,89 @@ import random
 import time
 from subprocess import call
 import os
+import json
 
 # Initialize pygame
 pygame.init()
 
 # Colors
-white = (255, 255, 255)
-black = (0, 0, 0)
-red = (213, 50, 80)
-green = (0, 255, 0)
-blue = (50, 153, 213)
-purple = (128, 0, 128)
-pink = (255, 111, 246)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (213, 50, 80)
+GREEN = (0, 255, 0)
+BLUE = (50, 153, 213)
+PURPLE = (128, 0, 128)
+PINK = (255, 111, 246)
+YELLOW = (255, 232, 31)
+
+SCREEN_WIDTH = 900
+SCREEN_HEIGHT = 600
 
 # Create the game window
-screen = pygame.display.set_mode((800, 700))
+screen = pygame.display.set_mode((900, 600))
 pygame.display.set_caption('Snake Game')
 
 # Load the background image
-background = pygame.image.load('INFO-Project-py/hatter2.jpg').convert()
-bg_width, bg_height = background.get_size()
+BACKGROUND = pygame.image.load('INFO-Project-py/BackGround/hatter2ok.jpg').convert()
+BG_WIDTH, BG_HEIGHT = BACKGROUND.get_size()
 
-infoObject = pygame.display.Info()
-screen_width = infoObject.current_w
-screen_height = infoObject.current_h
 
-okblock = screen_height
 # Clock to control the speed of the snake
 clock = pygame.time.Clock()
 
+
+MUSIC_PATH = "INFO-Project-py/atari_music"
+
+MUSIC_FILES = [
+    '1.mp3',
+    '2.mp3',
+    '3.mp3',
+    '4.mp3',
+    '5.mp3',
+    '7.mp3',
+    '8.mp3'
+    
+]
+
+
+def load_config():
+    with open("INFO-Project-py\config.json", 'r') as f:
+        return json.load(f)
+
+def save_config(config):
+    with open("INFO-Project-py\config.json", 'w') as f:
+        json.dump(config, f)
+
+def play_music():
+    cfg = load_config()
+    music_on = cfg['music_on']
+    volume = cfg['volume']
+    # Shuffle the music files to play them randomly
+    random.shuffle(MUSIC_FILES)
+    for music_file in MUSIC_FILES:
+        music_file_path = os.path.join(MUSIC_PATH, music_file)
+        pygame.mixer.music.load(music_file_path)  # Load the music file
+        pygame.mixer.music.set_volume(volume)  # Set the volume (0.0 to 1.0)
+        if music_on:
+            pygame.mixer.music.play()  # Play the music in a loop (-1 for infinite loop)
+            
+
 # Snake settings
 snake_speed = 8
-snake_block = 20
+snake_block = 30  #30
 speed_boost_duration = 3  # Duration in seconds for speed boost
 
-font_style = pygame.font.SysFont("bahnschrift", 25)
-status_font = pygame.font.SysFont("bahnschrift", 25)
 
 
-icon_folder = "INFO-Project-py/snake"
+FONT_STYLE = pygame.font.SysFont("bahnschrift", 25)
+STATUS_FONT = pygame.font.SysFont("bahnschrift", 25)
+
+
+icon_folder = "INFO-Project-py/Images"
 icons = {
     "apple": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "alma.png")), (snake_block, snake_block)),
+    "banana": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "Banana.png")), (snake_block, snake_block)),
     "plum": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "plum.png")), (snake_block, snake_block)),
-    "pepper": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "pepper.png")), (snake_block, snake_block)),
     "pear": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "korte.png")), (snake_block, snake_block)),
 }        
 
@@ -71,14 +111,19 @@ direction_icons = {
 
 # Function to display the score
 def Your_score(score):
-    value = font_style.render("Your Score: " + str(score), True, white)
+    value = FONT_STYLE.render("Your Score: " + str(score), True, WHITE)
     screen.blit(value, [0, 0])
 
 # Function to display the status
 def display_status(effect):
     status_text = "Effect: "
-    status_value = status_font.render(status_text + str(effect), True, red)
+    status_value = STATUS_FONT.render(status_text + str(effect), True, RED)
     screen.blit(status_value, [0, 25])
+
+def display_messages(message):
+    just_text = FONT_STYLE.render("Food timer: " + str(message), True, YELLOW)
+    screen.blit(just_text, [0, 0])
+
 
 # Function to draw the snake
 def our_snake(snake_list, direction):
@@ -143,25 +188,33 @@ def our_snake(snake_list, direction):
 
 
 # Function to generate food with specified probabilities
-def generate_food():
-    probability = random.random()
-    if probability < 0.5:  # 50% chance for red food
-        type = "apple"
-        score = 1
-    elif probability < 0.8:  # 30% chance for purple food
-        type = "plum"
-        score = 2
-    else:  # 20% chance for pink food
-        type = "pepper"
-        score = 3
-    foodx = round(random.randrange(0, screen_width - snake_block) / snake_block) * snake_block
-    foody = round(random.randrange(0, screen_height - snake_block) / snake_block) * snake_block
+def generate_food(snake_list):
+    while True:
+        probability = random.random()
+        if probability < 0.5:  # 50% chance for red food
+            type = "apple"
+            score = 1
+        elif probability < 0.8:  # 30% chance for purple food
+            type = "plum"
+            score = 2
+        else:  # 20% chance for pink food
+            type = "banana"
+            score = 3
+
+        foodx = round(random.randrange(0, SCREEN_WIDTH - snake_block) / snake_block) * snake_block
+        foody = round(random.randrange(0, SCREEN_HEIGHT - snake_block) / snake_block) * snake_block
+
+        # Check if the food overlaps with the snake
+        if [foodx, foody] not in snake_list:
+            break  # Exit the loop if the food does not overlap
+
     return foodx, foody, type, score
 
 
 # Main game loop
 def gameLoop():
     global snake_speed
+   # global snake_List
     game_over = False
     game_close = False
 
@@ -178,15 +231,19 @@ def gameLoop():
     effect_status = "NONE"
     direction = 'RIGHT'
     last_input_time = 0
+    
 
-    foodx, foody, type, score = generate_food()
+    foodx, foody, type, score = generate_food(snake_List)
+    
+    play_music()
 
     while not game_over:
-
+    
+        screen.fill((0,0,0))
         while game_close:
-            screen.fill(black)
-            message = font_style.render("Game Over! Press Esc-Quit or SPACE-Play Again", True, red)
-            screen.blit(message, [screen_width // 5, screen_height // 3])
+            screen.fill(BLACK)
+            message = FONT_STYLE.render("Game Over! Press Esc-Quit or SPACE-Play Again", True, RED)
+            screen.blit(message, [SCREEN_WIDTH // 5, SCREEN_HEIGHT // 3])
             Your_score(Length_of_snake)
             pygame.display.update()
 
@@ -199,41 +256,65 @@ def gameLoop():
                         gameLoop()
 
         current_time = time.time()
+        
+        if (pygame.mixer_music.get_busy() == False):
+            play_music()
+    
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_over = True
             if event.type == pygame.KEYDOWN and current_time - last_input_time >= 0.02:
                 last_input_time = current_time
-                if event.key == pygame.K_LEFT and direction != 'RIGHT':
-                    x1_change = -snake_block
-                    y1_change = 0
-                    direction = 'LEFT'
-                elif event.key == pygame.K_RIGHT and direction != 'LEFT':
-                    x1_change = snake_block
-                    y1_change = 0
-                    direction = 'RIGHT'
-                elif event.key == pygame.K_UP and direction != 'DOWN':
-                    y1_change = -snake_block
-                    x1_change = 0
-                    direction = 'UP'
-                elif event.key == pygame.K_DOWN and direction != 'UP':
-                    y1_change = snake_block
-                    x1_change = 0
-                    direction = 'DOWN'
-                elif event.key == pygame.K_ESCAPE:
-                    game_close = False
-                    game_over = True
-
-        if x1 >= screen_width or x1 < 0 or y1 >= screen_height or y1 < 0:
-            game_close = True
+                if x1 < SCREEN_WIDTH and y1 < SCREEN_HEIGHT and y1 >= 0 and x1 >= 0:
+                    if event.key == pygame.K_LEFT and direction != 'RIGHT':
+                        x1_change = -snake_block
+                        y1_change = 0
+                        direction = 'LEFT'
+                    elif event.key == pygame.K_RIGHT and direction != 'LEFT':
+                        x1_change = snake_block
+                        y1_change = 0
+                        direction = 'RIGHT'
+                    elif event.key == pygame.K_UP and direction != 'DOWN':
+                        y1_change = -snake_block
+                        x1_change = 0
+                        direction = 'UP'
+                    elif event.key == pygame.K_DOWN and direction != 'UP':
+                        y1_change = snake_block
+                        x1_change = 0
+                        direction = 'DOWN'
+                    elif event.key == pygame.K_ESCAPE:
+                        game_close = False
+                        game_over = True
+       
+           
+            #wall Teleportation mechanism
+        
+        """
         x1 += x1_change
         y1 += y1_change
+        
+          """  
+         # Wall Teleportation mechanism
+        if x1 >= SCREEN_WIDTH:
+            x1 = 0 - snake_block    # Wrap around to the left side
+        elif x1 < 0:
+            x1 = SCREEN_WIDTH # Wrap around to the right side
+        elif y1 >= SCREEN_HEIGHT:
+            y1 = 0 - snake_block # Wrap around to the top
+        elif y1 < 0:
+            y1 = SCREEN_HEIGHT  # Wrap around to the bottom 
+                
+        x1 += x1_change
+        y1 += y1_change
+            
+
+        
 
         # Draw the background image
-        for x in range(0, screen_width, bg_width):
-            for y in range(0, screen_height, bg_height):
-                screen.blit(background, (x, y))
+        for x in range(0, SCREEN_WIDTH, BG_WIDTH):
+            for y in range(0, SCREEN_HEIGHT, BG_HEIGHT):
+                screen.blit(BACKGROUND, (x, y))
 
         # Draw target
                   # Draw food icon
@@ -247,26 +328,41 @@ def gameLoop():
             del snake_List[0]
             
             
-    #Self Collision mechanism
+        #Self Collision mechanism
         for x in snake_List[:-1]:
             if x == snake_Head:
                 game_close = True
-
+                pygame.mixer_music.stop()
+                
+         
+         
+         
+        if type == "banana" and time.time() - banana_spawn_time > 3:
+            foodx, foody, type, score = generate_food(snake_List)
+            if type == "banana":
+                banana_spawn_time = time.time()  # Reset the timer if a new banana is spawned
+                
         our_snake(snake_List,direction)
-        Your_score(Length_of_snake - 1)
+        Your_score(Length_of_snake)
         display_status(effect_status)
+      #  display_messages(message)    
         pygame.display.update()
         
-        if x1==foodx and y1==foody:
-             if type == "apple":
+        
+        
+        if x1 == foodx and y1 == foody:
+            if type == "apple":
                 Length_of_snake += score
-             elif type == "plum":
+            elif type == "plum":
                 Length_of_snake += score
-             elif type == "pepper":
+            elif type == "banana":
                 Length_of_snake += score
                 is_speed_boosted = True
                 speed_boost_end_time = time.time() + speed_boost_duration
-             foodx, foody, type, score = generate_food()
+            foodx, foody, type, score = generate_food(snake_List)
+            if type == "banana":
+                banana_spawn_time = time.time()  # Reset the timer
+
 
         if is_speed_boosted:
             effect_status = "Faster"
@@ -275,9 +371,10 @@ def gameLoop():
                 is_speed_boosted = False
                 snake_speed = 8
         else:
-            effect_status = "None"
-
+            effect_status = "none"
+            
         clock.tick(snake_speed)
+        pygame.display.update()
 
     pygame.quit()
 
