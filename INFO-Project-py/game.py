@@ -1,7 +1,6 @@
 import pygame
 import random
 import time
-from subprocess import call
 import os
 import json
 
@@ -17,6 +16,9 @@ BLUE = (50, 153, 213)
 PURPLE = (128, 0, 128)
 PINK = (255, 111, 246)
 YELLOW = (255, 232, 31)
+ORANGE = (255,127,80)
+ORANGEL = (255,165,0)
+TEAL =  (0, 0, 128)
 
 SCREEN_WIDTH = 900
 SCREEN_HEIGHT = 600
@@ -29,8 +31,6 @@ pygame.display.set_caption('Snake Game')
 BACKGROUND = pygame.image.load('INFO-Project-py/BackGround/hatter2ok.jpg').convert()
 BG_WIDTH, BG_HEIGHT = BACKGROUND.get_size()
 
-
-# Clock to control the speed of the snake
 clock = pygame.time.Clock()
 
 
@@ -48,45 +48,25 @@ MUSIC_FILES = [
 ]
 
 
-def load_config():
-    with open("INFO-Project-py\config.json", 'r') as f:
-        return json.load(f)
-
-def save_config(config):
-    with open("INFO-Project-py\config.json", 'w') as f:
-        json.dump(config, f)
-
-def play_music():
-    cfg = load_config()
-    music_on = cfg['music_on']
-    volume = cfg['volume']
-    # Shuffle the music files to play them randomly
-    random.shuffle(MUSIC_FILES)
-    for music_file in MUSIC_FILES:
-        music_file_path = os.path.join(MUSIC_PATH, music_file)
-        pygame.mixer.music.load(music_file_path)  # Load the music file
-        pygame.mixer.music.set_volume(volume)  # Set the volume (0.0 to 1.0)
-        if music_on:
-            pygame.mixer.music.play()  # Play the music in a loop (-1 for infinite loop)
-            
-
 # Snake settings
 snake_speed = 8
 snake_block = 30  #30
 speed_boost_duration = 3  # Duration in seconds for speed boost
+personal_best = 0
 
+food_spawn_time = 0
+food_lifetime = 5  # Lifetime of food in seconds
 
 
 FONT_STYLE = pygame.font.SysFont("bahnschrift", 25)
 STATUS_FONT = pygame.font.SysFont("bahnschrift", 25)
 
-
+#Grapthic imports 
 icon_folder = "INFO-Project-py/Images"
 icons = {
-    "apple": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "alma.png")), (snake_block, snake_block)),
-    "banana": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "Banana.png")), (snake_block, snake_block)),
-    "plum": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "plum.png")), (snake_block, snake_block)),
-    "pear": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "korte.png")), (snake_block, snake_block)),
+    "apple": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "apple.png")), (snake_block, snake_block)),
+    "banana": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "banana.png")), (snake_block, snake_block)),
+    "plum": pygame.transform.scale(pygame.image.load(os.path.join(icon_folder, "plum.png")), (snake_block, snake_block))
 }        
 
 snake_graphics = "INFO-Project-py/Graphics"
@@ -109,20 +89,52 @@ direction_icons = {
 
 
 
-# Function to display the score
-def Your_score(score):
-    value = FONT_STYLE.render("Your Score: " + str(score), True, WHITE)
-    screen.blit(value, [0, 0])
 
-# Function to display the status
+
+def load_config():
+    with open("INFO-Project-py\config.json", 'r') as f:
+        return json.load(f)
+
+def save_config(config):
+    with open("INFO-Project-py\config.json", 'w') as f:
+        json.dump(config, f)
+
+def play_music():
+    cfg = load_config()
+    music_on = cfg['music_on']
+    volume = cfg['volume']
+    random.shuffle(MUSIC_FILES)
+    for music_file in MUSIC_FILES:
+        music_file_path = os.path.join(MUSIC_PATH, music_file)
+        pygame.mixer.music.load(music_file_path)
+        pygame.mixer.music.set_volume(volume)  
+        if music_on:
+            pygame.mixer.music.play() 
+            
+def save_personal_best(personal_best):
+    cfg = load_config()
+    cfg['personal_best'] = personal_best
+    save_config(cfg)
+    
+    
+    
+# Function to display on the screen
+def Your_score(score):
+    value = FONT_STYLE.render("Your Score: " + str(score), True, TEAL)
+    screen.blit(value, [0, 0])
+    
+def display_personal_best(best_score):
+    best_text = FONT_STYLE.render(f"Personal Best: {best_score}", True, PURPLE)
+    screen.blit(best_text, [0, 25])
+
 def display_status(effect):
     status_text = "Effect: "
     status_value = STATUS_FONT.render(status_text + str(effect), True, RED)
-    screen.blit(status_value, [0, 25])
+    screen.blit(status_value, [0, 50])
 
-def display_messages(message):
-    just_text = FONT_STYLE.render("Food timer: " + str(message), True, YELLOW)
-    screen.blit(just_text, [0, 0])
+def display_messages(remaining_time):
+    just_text = FONT_STYLE.render(f"Food timer: {int(remaining_time)} seconds", True, BLACK)
+    screen.blit(just_text, [0, 75])
 
 
 # Function to draw the snake
@@ -190,19 +202,18 @@ def our_snake(snake_list, direction):
 # Function to generate food with specified probabilities
 def generate_food(snake_list):
     while True:
-        probability = random.random()
-        if probability < 0.5:  # 50% chance for red food
+        probability = random.random()  # Generate a random number between 0 and 1
+        if probability < 0.5:  # 60% chance for apple
             type = "apple"
             score = 1
-        elif probability < 0.8:  # 30% chance for purple food
+        elif probability < 0.8:  # 20% chance for plum (0.7 to 0.9)
             type = "plum"
             score = 2
-        else:  # 20% chance for pink food
+        else:  # 10% chance for banana (0.9 to 1.0)
             type = "banana"
             score = 3
-
-        foodx = round(random.randrange(0, SCREEN_WIDTH - snake_block) / snake_block) * snake_block
-        foody = round(random.randrange(0, SCREEN_HEIGHT - snake_block) / snake_block) * snake_block
+        foodx = round(random.randrange(90, SCREEN_WIDTH - snake_block) / snake_block) * snake_block
+        foody = round(random.randrange(60, SCREEN_HEIGHT - snake_block) / snake_block) * snake_block
 
         # Check if the food overlaps with the snake
         if [foodx, foody] not in snake_list:
@@ -214,10 +225,11 @@ def generate_food(snake_list):
 # Main game loop
 def gameLoop():
     global snake_speed
-   # global snake_List
+    global food_spawn_time
+    global snake_speed
+    global personal_best
     game_over = False
     game_close = False
-
     x1 = 300
     y1 = 300
 
@@ -226,11 +238,17 @@ def gameLoop():
 
     snake_List = []
     Length_of_snake = 1
+    snake_speed = 8
+    snake_block = 30
     is_speed_boosted = False
     speed_boost_end_time = 0
+    slow_speed = False
+    slow_speed_end_time = 0
     effect_status = "NONE"
     direction = 'RIGHT'
     last_input_time = 0
+    cfg = load_config()
+    personal_best = cfg['personal_best']
     
 
     foodx, foody, type, score = generate_food(snake_List)
@@ -245,6 +263,8 @@ def gameLoop():
             message = FONT_STYLE.render("Game Over! Press Esc-Quit or SPACE-Play Again", True, RED)
             screen.blit(message, [SCREEN_WIDTH // 5, SCREEN_HEIGHT // 3])
             Your_score(Length_of_snake)
+            display_personal_best(personal_best)
+            save_personal_best(personal_best)
             pygame.display.update()
 
             for event in pygame.event.get():
@@ -288,13 +308,6 @@ def gameLoop():
                         game_over = True
        
            
-            #wall Teleportation mechanism
-        
-        """
-        x1 += x1_change
-        y1 += y1_change
-        
-          """  
          # Wall Teleportation mechanism
         if x1 >= SCREEN_WIDTH:
             x1 = 0 - snake_block    # Wrap around to the left side
@@ -308,6 +321,8 @@ def gameLoop():
         x1 += x1_change
         y1 += y1_change
             
+        # Calculate remaining time for the food
+        remaining_time = max(0, food_lifetime - (time.time() - food_spawn_time)+1)
 
         
 
@@ -334,20 +349,21 @@ def gameLoop():
                 game_close = True
                 pygame.mixer_music.stop()
                 
+        if Length_of_snake > personal_best:
+            personal_best = Length_of_snake
          
-         
-         
-        if type == "banana" and time.time() - banana_spawn_time > 3:
-            foodx, foody, type, score = generate_food(snake_List)
-            if type == "banana":
-                banana_spawn_time = time.time()  # Reset the timer if a new banana is spawned
                 
         our_snake(snake_List,direction)
         Your_score(Length_of_snake)
         display_status(effect_status)
-      #  display_messages(message)    
+        display_messages(remaining_time)
+        display_personal_best(personal_best)    
         pygame.display.update()
         
+        if time.time() - food_spawn_time > food_lifetime:
+            foodx, foody, type, score = generate_food(snake_List)
+            food_spawn_time = time.time()  # Reset the timer for the new food
+
         
         
         if x1 == foodx and y1 == foody:
@@ -355,13 +371,14 @@ def gameLoop():
                 Length_of_snake += score
             elif type == "plum":
                 Length_of_snake += score
+                slow_speed = True
+                slow_speed_end_time = time.time() + speed_boost_duration
             elif type == "banana":
                 Length_of_snake += score
                 is_speed_boosted = True
                 speed_boost_end_time = time.time() + speed_boost_duration
             foodx, foody, type, score = generate_food(snake_List)
-            if type == "banana":
-                banana_spawn_time = time.time()  # Reset the timer
+            food_spawn_time = time.time()  # Reset the timer for the new food
 
 
         if is_speed_boosted:
@@ -370,8 +387,16 @@ def gameLoop():
             if time.time() >= speed_boost_end_time:
                 is_speed_boosted = False
                 snake_speed = 8
+                
+            #Slow effect Implementation
+        elif slow_speed:
+            effect_status = "Slowed"
+            snake_speed = 4
+            if time.time() >= slow_speed_end_time:
+                slow_speed = False
+                snake_speed = 8
         else:
-            effect_status = "none"
+            effect_status = "NONE"        
             
         clock.tick(snake_speed)
         pygame.display.update()
